@@ -4,28 +4,47 @@
 
 ## 主な技術スタック
 
-- **Electric SQL**: PostgreSQL からのリアルタイムデータ同期
+- **Electric SQL**: PostgreSQLからのリアルタイムデータ同期
 - **TanStack DB**: 型安全なデータ管理とライブクエリ
-- **Electric Collection**: Electric SQL と TanStack DB の統合
-- **Next.js 16**: React フレームワーク
+- **Electric Collection**: Electric SQLとTanStack DBの統合
+- **TanStack Start v1.143.10**: フルスタックReactフレームワーク
+- **TanStack Router v1.143.6**: 型安全なルーティング
+- **React 19**: 最新のReactバージョン
 - **TypeScript**: 型安全性
-- **Tailwind CSS**: スタイリング
+- **Tailwind CSS v4**: 最新のスタイリング
+- **Vite v7**: 高速ビルドツール
 
 ## プロジェクト構造
 
 ```
 .
-├── client-app/              # Next.js アプリケーション
-│   ├── app/
+├── client-app/              # TanStack Startアプリケーション
+│   ├── src/
+│   │   ├── routes/          # TanStack Routerのルート
+│   │   │   ├── __root.tsx   # ルートレイアウト
+│   │   │   ├── index.tsx    # トップページ（楽観的更新の例）
+│   │   │   ├── pessimistic.tsx  # 悲観的更新の例
+│   │   │   └── api/         # APIルート
+│   │   │       ├── todos.ts         # Todo一覧取得・作成
+│   │   │       ├── todos.$id.ts     # Todo更新・削除
+│   │   │       ├── categories.ts    # カテゴリー一覧取得
+│   │   │       └── users.ts         # ユーザー一覧取得
 │   │   ├── db/
-│   │   │   └── collections.ts  # Electric Collection の定義と設定
-│   │   └── components/         # React コンポーネント
+│   │   │   └── collections.ts  # Electric Collectionの定義と設定
+│   │   ├── components/      # Reactコンポーネント
+│   │   ├── contexts/        # Reactコンテキスト
+│   │   ├── lib/             # ユーティリティ関数
+│   │   ├── router.tsx       # ルーター設定
+│   │   └── globals.css      # グローバルスタイル
+│   ├── types/              # TypeScript型定義
+│   ├── vite.config.ts      # Vite設定
+│   ├── tsr.config.json     # TanStack Router設定
 │   └── package.json
 ├── db/
 │   ├── migrations/         # データベースマイグレーション
 │   │   └── 01_create_tables.sql
-│   └── setup.sh            # DB セットアップスクリプト
-└── docker-compose.yaml    # PostgreSQL と Electric サービス
+│   └── setup.sh            # DBセットアップスクリプト
+└── docker-compose.yaml    # PostgreSQLとElectricサービス
 ```
 
 ## セットアップ手順
@@ -64,7 +83,9 @@ cd client-app
 pnpm dev
 ```
 
-ブラウザで [http://localhost:3001](http://localhost:3001) を開きます。
+ブラウザで [http://localhost:3002](http://localhost:3002) を開きます。
+
+**注意**: Electric Serviceがポート3000を使用しているため、TanStack Startアプリはポート3002で起動します。
 
 ## Electric SQL と TanStack DB の仕組み
 
@@ -95,7 +116,7 @@ createCollection(
 #### Electric Collection（新）
 ```typescript
 // Electric SQL設定
-const ELECTRIC_URL = process.env.NEXT_PUBLIC_ELECTRIC_URL || "http://localhost:3000";
+const ELECTRIC_URL = import.meta.env.VITE_ELECTRIC_URL || "http://localhost:3000";
 const electric = { url: ELECTRIC_URL };
 
 createCollection(
@@ -109,7 +130,7 @@ createCollection(
     },
     getKey: (item) => item.id,
 
-    // 書き込み操作は API 経由で行い、txid を返す
+    // 書き込み操作は TanStack Start の API ルート経由で行い、txid を返す
     onUpdate: async ({ transaction }) => {
       const mutation = transaction.mutations[0];
       if (!mutation) return;
@@ -197,8 +218,8 @@ Electric SQLとTanStack DBの統合には、**読み取り（Read）**と**書�
 
 ```
 ┌──────────────────┐         ┌─────────────────┐         ┌─────────────┐
-│ Client Browser   │  REST   │ Next.js API     │  SQL    │ PostgreSQL  │
-│ (User Action)    │────────▶│ Route Handler   │────────▶│  Database   │
+│ Client Browser   │  REST   │ TanStack Start  │  SQL    │ PostgreSQL  │
+│ (User Action)    │────────▶│ API Route       │────────▶│  Database   │
 │                  │  API    │                 │ Query   │             │
 └──────────────────┘         └─────────────────┘         └─────────────┘
        │                              │                          │
@@ -223,7 +244,7 @@ Electric SQLとTanStack DBの統合には、**読み取り（Read）**と**書�
 **ステップ解説：**
 
 1. **楽観的更新**: ユーザーアクション（例: `todoCollection.update()`）が即座にクライアント側のデータを更新
-2. **REST API呼び出し**: `onUpdate`ハンドラーがNext.js API Routeを呼び出し
+2. **REST API呼び出し**: `onUpdate`ハンドラーがTanStack Start API Routeを呼び出し
 3. **データベースへの書き込み**: API RouteがPostgreSQLにデータを書き込み、トランザクションID（txid）を取得
 4. **txidの返却**: APIが`{ txid: "..." }`をクライアントに返却
 5. **同期確認待機**: Electric CollectionがElectric Serviceから同じtxidを持つ変更を受信するまで待機
@@ -238,11 +259,11 @@ Electric SQLとTanStack DBの統合には、**読み取り（Read）**と**書�
    ↓
 2. [Client] todoCollection.update(id, { completed: true })
    ↓ (即座に UI が更新される - 楽観的更新)
-3. [Client] onUpdate ハンドラーが /api/todos/:id へ PUT リクエスト
+3. [Client] onUpdate ハンドラーが /api/todos/$id へ PUT リクエスト
    ↓
-4. [API] PostgreSQL に UPDATE 実行
+4. [TanStack Start API] PostgreSQL に UPDATE 実行
    ↓
-5. [API] txid を取得して返却 { txid: "1234567890" }
+5. [TanStack Start API] txid を取得して返却 { txid: "1234567890" }
    ↓
 6. [Electric] PostgreSQL の WAL から変更を検知
    ↓
@@ -469,7 +490,7 @@ User A    Component A  Collection  Electric   PostgreSQL  Collection  Component 
 
 ### 1. Electric Collectionの定義
 
-[`client-app/app/db/collections.ts`](client-app/app/db/collections.ts)を確認してください。
+[`client-app/src/db/collections.ts`](client-app/src/db/collections.ts)を確認してください。
 
 ```typescript
 export const todoCollection = createCollection(
@@ -489,9 +510,13 @@ export const todoCollection = createCollection(
 );
 ```
 
-### 2. Live Queryの使用
+### 2. TanStack Routerの使用
 
-[`client-app/app/components/TodoList.tsx`](client-app/app/components/TodoList.tsx)を確認してください。
+[`client-app/src/routes/index.tsx`](client-app/src/routes/index.tsx)を確認してください。TanStack Startでは、ファイルベースのルーティングを使用します。
+
+### 3. Live Queryの使用
+
+[`client-app/src/components/TodosWithUserAndCategory.tsx`](client-app/src/components/TodosWithUserAndCategory.tsx)を確認してください。
 
 ```typescript
 const { data: allTodos, isLoading } = useLiveQuery((q) =>
@@ -499,9 +524,9 @@ const { data: allTodos, isLoading } = useLiveQuery((q) =>
 );
 ```
 
-### 3. データの操作
+### 4. データの操作
 
-[`client-app/app/components/TodoItem.tsx`](client-app/app/components/TodoItem.tsx)と[`AddTodoForm.tsx`](client-app/app/components/AddTodoForm.tsx)を確認してください。
+コンポーネント内でCollectionを使用してデータを操作します：
 
 ```typescript
 // 追加
@@ -512,6 +537,38 @@ todoCollection.update(todo.id, { completed: !todo.completed });
 
 // 削除
 todoCollection.delete(todo.id);
+```
+
+### 5. APIルート
+
+TanStack Start v1.143.xでは、[`client-app/src/routes/api/`](client-app/src/routes/api/)ディレクトリ内に`createFileRoute`を使ってAPIルートを定義します。たとえば：
+
+- [`todos.ts`](client-app/src/routes/api/todos.ts) - Todo一覧の取得と作成
+- [`todos.$id.ts`](client-app/src/routes/api/todos.$id.ts) - Todoの更新と削除
+- [`users.ts`](client-app/src/routes/api/users.ts) - ユーザー一覧の取得
+- [`categories.ts`](client-app/src/routes/api/categories.ts) - カテゴリー一覧の取得
+
+APIルートの定義例：
+
+```typescript
+import { createFileRoute } from '@tanstack/react-router'
+import { db } from '@/lib/db'
+
+export const Route = createFileRoute('/api/todos')({
+  server: {
+    handlers: {
+      GET: async ({ request }) => {
+        const todos = await db.todos.findAll()
+        return Response.json(todos)
+      },
+      POST: async ({ request }) => {
+        const body = await request.json()
+        const { todo, txid } = await db.todos.create(body)
+        return Response.json({ ...todo, txid }, { status: 201 })
+      },
+    },
+  },
+})
 ```
 
 ## データベース直接操作での確認
