@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm add:*)",
+      "Bash(pnpm update:*)",
+      "Bash(cat:*)",
+      "Bash(timeout 30 pnpm dev:*)",
+      "Bash(pnpm remove:*)",
+      "Bash(pnpm install)",
+      "Bash(pnpm list:*)",
+      "Bash(node -e:*)",
+      "Bash(node --input-type=module -e:*)",
+      "Bash(pnpm why:*)",
+      "Bash(pnpm view:*)",
+      "Bash(ls:*)",
+      "Bash(xargs sed:*)",
+      "Bash(xargs sed -i '' '1{/^''''use client'''';$/d;}')",
+      "Bash(grep:*)",
+      "Bash(PORT=3002 pnpm dev:*)",
+      "Bash(pnpm dev)",
+      "Bash(kill:*)",
+      "Bash(pnpm tsc:*)"
+    ],
+    "deny": [],
+    "ask": []
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pnpm tsc"
+          }
+        ]
+      }
+    ]
+  }
+}
