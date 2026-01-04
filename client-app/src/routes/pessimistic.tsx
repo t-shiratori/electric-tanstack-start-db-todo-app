@@ -1,11 +1,10 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, ClientOnly } from '@tanstack/react-router'
 import { ErrorSimulationProvider } from '../contexts/ErrorSimulationContext'
 import { NotificationProvider } from '../contexts/NotificationContext'
 import { PessimisticAddTodoForm } from '../components/PessimisticAddTodoForm'
 import { PessimisticTodoList } from '../components/PessimisticTodoList'
 import { ErrorSimulationToggle } from '../components/ErrorSimulationToggle'
 import { ToastContainer } from '../components/ToastContainer'
-import { ClientOnly } from '../components/ClientOnly'
 
 export const Route = createFileRoute('/pessimistic')({
   component: PessimisticPage,

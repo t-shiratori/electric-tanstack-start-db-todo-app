@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, ClientOnly } from '@tanstack/react-router'
 import { ErrorSimulationProvider } from '../contexts/ErrorSimulationContext'
 import { NotificationProvider } from '../contexts/NotificationContext'
 import { AddTodoForm } from '../components/AddTodoForm'
@@ -6,7 +6,6 @@ import { TodoList } from '../components/TodoList'
 import { ErrorSimulationToggle } from '../components/ErrorSimulationToggle'
 import { ToastContainer } from '../components/ToastContainer'
 import { TodosWithUserAndCategory } from '../components/TodosWithUserAndCategory'
-import { ClientOnly } from '../components/ClientOnly'
 
 export const Route = createFileRoute('/')({
   component: Home,
